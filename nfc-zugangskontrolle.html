@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NFC-Zugangskontrolle mit Arduino bauen — Schritt für Schritt</title>
+<style>
+
+  :root{
+    --board-green: #0b3d2b;
+    --board-green-dark: #082a1e;
+    --copper: #b8733a;
+    --copper-bright: #d98f4e;
+    --silk: #ece7da;
+    --silk-dim: #ab9d8c;
+    --led-amber: #ffb238;
+    --paper: #f7f4ec;
+    --ink: #1c1a15;
+  }
+
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+
+  body{
+    margin:0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+    line-height: 1.6;
+  }
+
+  .mono{ font-family: 'SF Mono', 'Consolas', 'Menlo', monospace; }
+  a{ color: inherit; }
+
+  .hero{
+    background:
+      radial-gradient(circle at 15% 20%, rgba(184,115,58,0.12), transparent 45%),
+      var(--board-green);
+    color: var(--silk);
+    padding: 4.5rem 1.5rem 3.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    background-image:
+      linear-gradient(var(--board-green-dark) 1px, transparent 1px),
+      linear-gradient(90deg, var(--board-green-dark) 1px, transparent 1px);
+    background-size: 28px 28px;
+    opacity: 0.35;
+    pointer-events:none;
+  }
+
+  .hero-inner{ max-width: 620px; margin: 0 auto; position: relative; }
+
+  .kicker{
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.02em;
+    color: var(--copper-bright);
+    margin: 0 0 1rem;
+  }
+
+  h1{
+    font-size: 2.3rem;
+    line-height: 1.2;
+    margin: 0 0 1rem;
+    font-weight: 600;
+    max-width: 16ch;
+  }
+
+  .hero p{
+    font-size: 1.05rem;
+    color: var(--silk-dim);
+    max-width: 46ch;
+    margin: 0 0 2rem;
+  }
+
+  .photo-slot{
+    margin-top: 2rem;
+    border: 1px dashed var(--copper);
+    border-radius: 4px;
+    aspect-ratio: 4/3;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+    padding: 1.5rem;
+    background: rgba(0,0,0,0.15);
+  }
+
+  .photo-slot span{
+    font-family: 'SF Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--silk-dim);
+    line-height: 1.5;
+  }
+
+  main{ max-width: 620px; margin: 0 auto; padding: 0 1.5rem; }
+
+  section{ padding: 3rem 0; border-bottom: 1px solid #ddd6c4; }
+  section:last-of-type{ border-bottom: none; }
+
+  h2{ font-size: 1.5rem; margin: 0 0 1.2rem; font-weight: 600; }
+  .lede{ color: #4a4437; font-size: 1.02rem; }
+
+  .parts-list{ list-style: none; margin: 1.5rem 0; padding: 0; border-top: 1px solid #ddd6c4; }
+  .parts-list li{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid #ddd6c4;
+  }
+  .parts-list .name{ font-size: 0.98rem; }
+  .parts-list .tag{
+    font-family: 'SF Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--copper);
+    white-space: nowrap;
+  }
+
+  .kit-callout{
+    margin-top: 1.8rem;
+    background: var(--board-green);
+    color: var(--silk);
+    border-radius: 6px;
+    padding: 1.6rem;
+  }
+  .kit-callout p{ margin: 0 0 1rem; color: var(--silk-dim); font-size: 0.95rem; }
+  .kit-callout strong{ color: var(--silk); }
+
+  .buy-button{
+    display: inline-block;
+    background: var(--copper-bright);
+    color: var(--board-green-dark);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.7rem 1.3rem;
+    border-radius: 4px;
+    font-size: 0.95rem;
+  }
+
+  .disclosure{
+    font-family: 'SF Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--silk-dim);
+    margin-top: 0.9rem;
+    opacity: 0.8;
+  }
+
+  .step{ display: flex; gap: 1.1rem; margin-bottom: 1.8rem; }
+  .step-num{
+    font-family: 'SF Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--copper);
+    border: 1px solid var(--copper);
+    border-radius: 50%;
+    width: 1.8rem;
+    height: 1.8rem;
+    flex-shrink: 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .step-body h3{ margin: 0 0 0.3rem; font-size: 1.05rem; font-weight: 600; }
+  .step-body p{ margin: 0; color: #4a4437; font-size: 0.96rem; }
+
+  .wiring{
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.2rem 0 0;
+    font-size: 0.92rem;
+  }
+  .wiring th, .wiring td{
+    text-align: left;
+    padding: 0.6rem 0.5rem;
+    border-bottom: 1px solid #ddd6c4;
+  }
+  .wiring th{
+    font-family: 'SF Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--copper);
+    font-weight: 600;
+  }
+
+  pre{
+    background: var(--board-green-dark);
+    color: var(--silk);
+    padding: 1.3rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+  pre .cm{ color: var(--silk-dim); }
+  pre .kw{ color: var(--led-amber); }
+
+  .note{
+    background: #efe9d8;
+    border-left: 3px solid var(--copper);
+    padding: 0.9rem 1.1rem;
+    font-size: 0.92rem;
+    color: #4a4437;
+    margin: 1.2rem 0;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .trouble{ margin: 0; padding: 0; list-style: none; }
+  .trouble li{ padding: 1rem 0; border-top: 1px solid #ddd6c4; }
+  .trouble li:first-child{ border-top: none; }
+  .trouble .q{ font-weight: 600; margin-bottom: 0.3rem; font-size: 0.98rem; }
+  .trouble .a{ color: #4a4437; font-size: 0.94rem; margin: 0; }
+
+  footer{
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 4rem;
+    color: var(--silk-dim);
+    font-size: 0.85rem;
+  }
+  footer a{ color: var(--copper); text-decoration: underline; }
+
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <p class="kicker mono">PROJEKT 04 — ZUGANG</p>
+    <h1>Eine NFC-Zugangskontrolle mit Arduino bauen</h1>
+    <p>Eine RFID/NFC-Karte an den Sensor halten, Arduino erkennt sie, ein Servo öffnet die "Tür". Alle Teile sind im Elegoo Ultimate Starter Kit enthalten.</p>
+
+    <div class="photo-slot">
+      <span>[ <img src = "C:\Users\rzgar\OneDrive\Desktop\20260912_104722.jpg" >]<br>Fertiger Aufbau mit RFID-Modul und Karte,<br>im Querformat, gutes Licht</span>
+    </div>
+  </div>
+</div>
+
+<main>
+
+  <section id="teile">
+    <h2>Was du brauchst</h2>
+    <p class="lede">Alle Teile stammen aus dem Elegoo Ultimate Starter Kit — nichts muss separat gekauft werden.</p>
+
+    <ul class="parts-list">
+      <li><span class="name">Arduino-Board (Uno oder Mega)</span><span class="tag">IM KIT</span></li>
+      <li><span class="name">RFID-Modul RC522</span><span class="tag">IM KIT</span></li>
+      <li><span class="name">RFID-Karte oder -Anhänger</span><span class="tag">IM KIT</span></li>
+      <li><span class="name">Mini-Servo (als "Schranke")</span><span class="tag">IM KIT</span></li>
+      <li><span class="name">LED grün + rot, je 220Ω Widerstand</span><span class="tag">IM KIT</span></li>
+      <li><span class="name">Breadboard + Jumper-Kabel</span><span class="tag">IM KIT</span></li>
+    </ul>
+
+    <div class="kit-callout">
+      <p><strong>Alle Teile in einem Kit:</strong> Das Elegoo Ultimate Starter Kit enthält das RFID-Modul, Karten, Servo und alles Weitere für dieses Projekt.</p>
+      <a class="buy-button" href="DEIN-ELEGOO-AFFILIATE-LINK-HIER" target="_blank" rel="noopener sponsored">Kit ansehen</a>
+      <p class="disclosure">Werbung. Dieser Link ist ein Affiliate-Link. Bei einem Kauf über diesen Link erhalte ich eine kleine Provision, für dich ändert sich der Preis nicht.</p>
+    </div>
+  </section>
+
+  <section id="verkabelung">
+    <h2>Verkabelung</h2>
+    <p class="lede">Das RC522-Modul kommuniziert per SPI und läuft mit <strong>3,3 Volt</strong>, nicht mit 5 Volt — das ist der häufigste Anfängerfehler bei diesem Bauteil.</p>
+
+    <table class="wiring">
+      <tr><th>RC522-Pin</th><th>Arduino Uno</th></tr>
+      <tr><td>SDA (SS)</td><td>Pin 10</td></tr>
+      <tr><td>SCK</td><td>Pin 13</td></tr>
+      <tr><td>MOSI</td><td>Pin 11</td></tr>
+      <tr><td>MISO</td><td>Pin 12</td></tr>
+      <tr><td>RST</td><td>Pin 9</td></tr>
+      <tr><td>3.3V</td><td>3.3V</td></tr>
+      <tr><td>GND</td><td>GND</td></tr>
+    </table>
+
+    <div class="note">Servo-Signal an Pin 6, grüne LED an Pin 5, rote LED an Pin 4 — jeweils mit 220Ω-Widerstand.</div>
+  </section>
+
+  <section id="aufbau">
+    <h2>Vorgehen</h2>
+
+    <div class="step">
+      <div class="step-num mono">1</div>
+      <div class="step-body">
+        <h3>Bibliothek installieren</h3>
+        <p>In der Arduino IDE unter "Werkzeuge → Bibliotheken verwalten" nach "MFRC522" suchen und die Bibliothek von GithubCommunity installieren. Sie übernimmt die komplette Kommunikation mit dem Modul.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num mono">2</div>
+      <div class="step-body">
+        <h3>Karten-ID auslesen</h3>
+        <p>Zuerst das Beispiel-Sketch "DumpInfo" aus der Bibliothek hochladen und jede deiner Karten einmal an den Sensor halten. Im Seriellen Monitor erscheint die eindeutige UID jeder Karte — die brauchst du im nächsten Schritt.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num mono">3</div>
+      <div class="step-body">
+        <h3>Eigenen Code hochladen</h3>
+        <p>Den Sketch unten verwenden und die UID deiner "bekannten" Karte im Code eintragen. Bei Erkennung öffnet der Servo, die grüne LED leuchtet. Bei unbekannten Karten bleibt die Schranke zu, die rote LED leuchtet.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num mono">4</div>
+      <div class="step-body">
+        <h3>Testen</h3>
+        <p>Bekannte Karte an den Sensor halten → Servo öffnet. Eine andere, unregistrierte Karte testen → Servo bleibt geschlossen, rote LED leuchtet.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="code">
+    <h2>Der Code</h2>
+    <p class="lede">Ersetze die Beispiel-UID unten durch die UID deiner eigenen Karte aus Schritt 2.</p>
+
+    <pre class="mono"><span class="kw">#include</span> &lt;SPI.h&gt;
+<span class="kw">#include</span> &lt;MFRC522.h&gt;
+<span class="kw">#include</span> &lt;Servo.h&gt;
+
+<span class="kw">#define</span> SS_PIN 10
+<span class="kw">#define</span> RST_PIN 9
+
+MFRC522 rfid(SS_PIN, RST_PIN);
+Servo schranke;
+
+<span class="cm">// UID deiner eigenen Karte eintragen (aus Schritt 2)</span>
+<span class="kw">byte</span> bekannteUID[4] = {0x12, 0x34, 0x56, 0x78};
+
+<span class="kw">const int</span> ledGruen = 5;
+<span class="kw">const int</span> ledRot = 4;
+
+<span class="kw">void</span> setup() {
+  Serial.begin(9600);
+  SPI.begin();
+  rfid.PCD_Init();
+  schranke.attach(6);
+  schranke.write(0);  <span class="cm">// Schranke zu</span>
+  pinMode(ledGruen, OUTPUT);
+  pinMode(ledRot, OUTPUT);
+}
+
+<span class="kw">void</span> loop() {
+  <span class="kw">if</span> (!rfid.PICC_IsNewCardPresent() || !rfid.PICC_ReadCardSerial()) {
+    <span class="kw">return</span>;
+  }
+
+  <span class="kw">bool</span> bekannt = <span class="kw">true</span>;
+  <span class="kw">for</span> (<span class="kw">byte</span> i = 0; i &lt; 4; i++) {
+    <span class="kw">if</span> (rfid.uid.uidByte[i] != bekannteUID[i]) {
+      bekannt = <span class="kw">false</span>;
+    }
+  }
+
+  <span class="kw">if</span> (bekannt) {
+    Serial.println(<span class="cm">"Zugang erlaubt"</span>);
+    digitalWrite(ledGruen, HIGH);
+    schranke.write(90);  <span class="cm">// Schranke auf</span>
+    delay(3000);
+    schranke.write(0);
+    digitalWrite(ledGruen, LOW);
+  } <span class="kw">else</span> {
+    Serial.println(<span class="cm">"Zugang verweigert"</span>);
+    digitalWrite(ledRot, HIGH);
+    delay(1000);
+    digitalWrite(ledRot, LOW);
+  }
+
+  rfid.PICC_HaltA();
+}</pre>
+  </section>
+
+  <section id="fehler">
+    <h2>Häufige Probleme</h2>
+
+    <ul class="trouble">
+      <li>
+        <p class="q">Der Sensor erkennt gar keine Karte.</p>
+        <p class="a">Meist liegt es an der Stromversorgung — das RC522-Modul braucht 3,3V, nicht 5V. Mit 5V betrieben, funktioniert es oft gar nicht oder nur unzuverlässig.</p>
+      </li>
+      <li>
+        <p class="q">Die UID ändert sich bei jedem Auslesen.</p>
+        <p class="a">Das deutet auf eine wackelige Verbindung hin — Breadboard-Kontakte und Kabel prüfen, besonders SDA und RST.</p>
+      </li>
+      <li>
+        <p class="q">Der Servo zittert nur, statt sich zu drehen.</p>
+        <p class="a">Meist reicht der Strom vom Arduino-Pin nicht aus. Bei größeren Servos eine externe 5V-Stromquelle für den Servo verwenden, GND aber mit dem Arduino verbinden.</p>
+      </li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  Teil einer kleinen Reihe von Arduino- und ESP32-Bastelprojekten für Einsteiger.
+</footer>
+
+</body>
+</html>
